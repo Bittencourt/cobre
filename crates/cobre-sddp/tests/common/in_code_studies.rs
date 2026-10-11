@@ -22,8 +22,8 @@ use chrono::{NaiveDate, TimeDelta};
 use cobre_core::entities::hydro::{HydroGenerationModel, HydroPenalties};
 use cobre_core::scenario::{InflowModel, LoadModel, NcsModel};
 use cobre_core::temporal::{
-    Block, BlockMode, NoiseMethod, PolicyGraphType, ScenarioSourceConfig, Stage, StageRiskConfig,
-    StageStateConfig,
+    Block, BlockMode, NoiseMethod, PolicyGraphType, ScenarioSourceConfig, SeasonCycleType,
+    SeasonDefinition, SeasonMap, Stage, StageRiskConfig, StageStateConfig,
 };
 use cobre_core::{
     AnticipatedCommitmentHistory, AnticipatedConfig, BoundsCountsSpec, BoundsDefaults,
@@ -31,8 +31,8 @@ use cobre_core::{
     HydroBlockBounds, HydroStageBounds, HydroStorage, InitialConditions, LineBlockBounds,
     LineStagePenalties, NcsStagePenalties, NonControllableSource, PenaltiesCountsSpec,
     PenaltiesDefaults, PostStudyStage, PostStudyStages, PostStudyThermalBound, PumpingBlockBounds,
-    PumpingStation, ResolvedBounds, ResolvedPenalties, SystemBuilder, ThermalBlockBounds,
-    ThermalStageBounds,
+    PumpingStation, RecentObservation, ResolvedBounds, ResolvedPenalties, SystemBuilder,
+    ThermalBlockBounds, ThermalStageBounds,
 };
 use cobre_io::config::{
     Config, EstimationConfig, ExportsConfig, InflowNonNegativityConfig,
@@ -1429,10 +1429,25 @@ pub const CHRONOLOGICAL_NOISE_INFLOW_STD_M3S: [f64; 2] = [10.0, 20.0];
 pub const CHRONOLOGICAL_NOISE_INITIAL_STORAGE_HM3: f64 = 1000.0;
 /// Spillage and turbined unit cost, shared by both hydros.
 pub const CHRONOLOGICAL_NOISE_RELEASE_COST: f64 = 0.01;
+/// Mean inflow \[m³/s\] of [`negative_draw_par1_spec`], low enough that the raw PAR value is negative.
+pub const NEGATIVE_DRAW_INFLOW_MEAN_M3S: f64 = -30.0;
+/// AR(1) coefficient of [`negative_draw_par1_spec`], by hydro position.
+pub const NEGATIVE_DRAW_AR_COEFFICIENT: [f64; 2] = [0.5, 0.25];
+/// Lag seed \[m³/s\] of [`negative_draw_par1_spec`], by hydro position.
+pub const NEGATIVE_DRAW_LAG_SEED_M3S: [f64; 2] = [-40.0, -20.0];
 
 const CHRONOLOGICAL_NOISE_N_STAGES: usize = 2;
 const CHRONOLOGICAL_NOISE_BUS_ID: i32 = 10;
 const CHRONOLOGICAL_NOISE_HYDRO_IDS: [i32; 2] = [1, 2];
+
+/// The PAR(1) lag state of [`chronological_noise_study`], both arrays by hydro position.
+#[derive(Clone, Copy)]
+pub struct ChronologicalNoisePar1 {
+    /// Standardized AR(1) coefficient; the pre-study and study stages share one standard deviation.
+    pub ar_coefficient: [f64; 2],
+    /// Inflow \[m³/s\] observed in the month before the study.
+    pub lag_seed_m3s: [f64; 2],
+}
 
 /// [`chronological_noise_study`]'s varying axes: the consumer-set fields only
 /// (`block_modes` for a future parallel variant, `max_storage_hm3` and
@@ -1457,6 +1472,8 @@ pub struct ChronologicalNoiseSpec {
     pub inflow_method: CfgInflowMethod,
     /// Mean inflow \[m³/s\], shared by both hydros and stages.
     pub inflow_mean_m3s: f64,
+    /// Seeds the PAR(1) lag state; `None` is the PAR(0) study.
+    pub par1: Option<ChronologicalNoisePar1>,
 }
 
 impl Default for ChronologicalNoiseSpec {
@@ -1470,7 +1487,25 @@ impl Default for ChronologicalNoiseSpec {
             water_withdrawal_m3s: 0.0,
             inflow_method: CfgInflowMethod::None,
             inflow_mean_m3s: CHRONOLOGICAL_NOISE_INFLOW_MEAN_M3S,
+            par1: None,
         }
+    }
+}
+
+fn monthly_season_map() -> SeasonMap {
+    let seasons = (0..12)
+        .map(|id| SeasonDefinition {
+            id,
+            label: format!("Month{}", id + 1),
+            month_start: u32::try_from(id + 1).expect("month fits u32"),
+            day_start: None,
+            month_end: None,
+            day_end: None,
+        })
+        .collect();
+    SeasonMap {
+        cycle_type: SeasonCycleType::Monthly,
+        seasons,
     }
 }
 
@@ -1542,12 +1577,12 @@ fn build_chronological_noise_system(spec: &ChronologicalNoiseSpec) -> cobre_core
                 StageSpec {
                     start_date: stage_date(i),
                     end_date: stage_date(i + 1),
-                    season_id: Some(0),
+                    season_id: Some(if spec.par1.is_some() { i } else { 0 }),
                     blocks: blocks.clone(),
                     block_mode: spec.block_modes[i],
                     state_config: StageStateConfig {
                         storage: true,
-                        inflow_lags: false,
+                        inflow_lags: spec.par1.is_some(),
                     },
                     risk_config: StageRiskConfig::Expectation,
                     scenario_config: ScenarioSourceConfig {
@@ -1563,15 +1598,27 @@ fn build_chronological_noise_system(spec: &ChronologicalNoiseSpec) -> cobre_core
         .iter()
         .enumerate()
         .flat_map(|(h, &id)| {
-            (0..CHRONOLOGICAL_NOISE_N_STAGES).map(move |i| InflowModel {
+            let pre_study = spec.par1.map(|_| InflowModel {
                 hydro_id: EntityId(id),
-                stage_id: i32::try_from(i).expect("stage index fits i32"),
+                stage_id: -1,
                 mean_m3s: spec.inflow_mean_m3s,
                 std_m3s: CHRONOLOGICAL_NOISE_INFLOW_STD_M3S[h],
                 ar_coefficients: vec![],
                 residual_std_ratio: 1.0,
                 annual: None,
-            })
+            });
+            let study_stages = (0..CHRONOLOGICAL_NOISE_N_STAGES).map(move |i| InflowModel {
+                hydro_id: EntityId(id),
+                stage_id: i32::try_from(i).expect("stage index fits i32"),
+                mean_m3s: spec.inflow_mean_m3s,
+                std_m3s: CHRONOLOGICAL_NOISE_INFLOW_STD_M3S[h],
+                ar_coefficients: spec
+                    .par1
+                    .map_or_else(Vec::new, |par1| vec![par1.ar_coefficient[h]]),
+                residual_std_ratio: 1.0,
+                annual: None,
+            });
+            pre_study.into_iter().chain(study_stages)
         })
         .collect();
 
@@ -1658,7 +1705,19 @@ fn build_chronological_noise_system(spec: &ChronologicalNoiseSpec) -> cobre_core
             .collect(),
         filling_storage: vec![],
         past_anticipated_commitments: vec![],
-        recent_observations: vec![],
+        recent_observations: spec.par1.map_or_else(Vec::new, |par1| {
+            CHRONOLOGICAL_NOISE_HYDRO_IDS
+                .iter()
+                .enumerate()
+                .map(|(h, &id)| RecentObservation {
+                    hydro_id: EntityId(id),
+                    start_date: NaiveDate::from_ymd_opt(2023, 12, 1)
+                        .expect("chronological_noise_study: valid date"),
+                    end_date: start,
+                    value_m3s: par1.lag_seed_m3s[h],
+                })
+                .collect()
+        }),
         past_defluences: vec![],
     };
 
@@ -1702,7 +1761,7 @@ fn build_chronological_noise_system(spec: &ChronologicalNoiseSpec) -> cobre_core
         pumping_stations.reverse();
     }
 
-    SystemBuilder::new()
+    let mut builder = SystemBuilder::new()
         .buses(buses)
         .thermals(thermals)
         .pumping_stations(pumping_stations)
@@ -1712,7 +1771,14 @@ fn build_chronological_noise_system(spec: &ChronologicalNoiseSpec) -> cobre_core
         .load_models(load_models)
         .bounds(bounds)
         .penalties(penalties)
-        .initial_conditions(initial_conditions)
+        .initial_conditions(initial_conditions);
+    if spec.par1.is_some() {
+        builder = builder.policy_graph(HorizonGraph {
+            season_map: Some(monthly_season_map()),
+            ..HorizonGraph::default()
+        });
+    }
+    builder
         .build()
         .expect("chronological_noise_study: two independent hydros on a two-stage system")
 }
@@ -1727,6 +1793,33 @@ pub fn chronological_noise_study(spec: &ChronologicalNoiseSpec) -> (cobre_core::
     let mut config = build_config();
     config.modeling.inflow_non_negativity.method = spec.inflow_method;
     (build_chronological_noise_system(spec), config)
+}
+
+/// [`chronological_noise_study`] with a PAR(1) lag state whose raw inflow is negative at the root:
+/// stage 0 parallel, stage 1 chronological.
+#[must_use]
+pub fn negative_draw_par1_spec(inflow_method: CfgInflowMethod) -> ChronologicalNoiseSpec {
+    ChronologicalNoiseSpec {
+        block_modes: [BlockMode::Parallel, BlockMode::Chronological],
+        inflow_method,
+        inflow_mean_m3s: NEGATIVE_DRAW_INFLOW_MEAN_M3S,
+        par1: Some(ChronologicalNoisePar1 {
+            ar_coefficient: NEGATIVE_DRAW_AR_COEFFICIENT,
+            lag_seed_m3s: NEGATIVE_DRAW_LAG_SEED_M3S,
+        }),
+        ..ChronologicalNoiseSpec::default()
+    }
+}
+
+/// derived: `μ·(1 − φ_h) + φ_h·lag_m3s + s_h·eta`, with `μ`, `φ_h` and `s_h` the
+/// negative-draw constants; the mean and standard deviation are equal on the pre-study
+/// stage and both study stages, so `ψ = φ`, `b = μ·(1 − φ)` and `σ = s`.
+#[must_use]
+pub fn negative_draw_raw_inflow(hydro: usize, lag_m3s: f64, eta: f64) -> f64 {
+    let phi = NEGATIVE_DRAW_AR_COEFFICIENT[hydro];
+    NEGATIVE_DRAW_INFLOW_MEAN_M3S * (1.0 - phi)
+        + phi * lag_m3s
+        + CHRONOLOGICAL_NOISE_INFLOW_STD_M3S[hydro] * eta
 }
 
 /// [`chronological_noise_study`] with its pumping station enabled, built
