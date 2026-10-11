@@ -43,6 +43,7 @@ use cobre_io::config::{
 use cobre_sddp::StudySetup;
 use cobre_sddp::hydro_models::{
     EvaporationModel, EvaporationModelSet, LinearizedEvaporation, PrepareHydroModelsResult,
+    ProductionModelSet, ResolvedProductionModel,
 };
 
 use super::builders::{
@@ -1476,6 +1477,13 @@ pub struct ChronologicalNoiseSpec {
     pub inflow_mean_m3s: f64,
     /// Seeds the PAR(1) lag state; `None` is the PAR(0) study.
     pub par1: Option<ChronologicalNoisePar1>,
+    /// Bus load \[MW\], by stage.
+    pub load_mw: [f64; 2],
+    /// Constant productivity \[MW per m³/s\], shared by both hydros and stages; read only by
+    /// [`chronological_noise_hydro_models`].
+    pub hydro_productivity_mw_per_m3s: f64,
+    /// Initial storage \[hm³\], shared by both hydros.
+    pub initial_storage_hm3: f64,
 }
 
 impl Default for ChronologicalNoiseSpec {
@@ -1491,6 +1499,9 @@ impl Default for ChronologicalNoiseSpec {
             inflow_method: CfgInflowMethod::None,
             inflow_mean_m3s: CHRONOLOGICAL_NOISE_INFLOW_MEAN_M3S,
             par1: None,
+            load_mw: [0.0; 2],
+            hydro_productivity_mw_per_m3s: 0.0,
+            initial_storage_hm3: CHRONOLOGICAL_NOISE_INITIAL_STORAGE_HM3,
         }
     }
 }
@@ -1630,7 +1641,7 @@ fn build_chronological_noise_system(spec: &ChronologicalNoiseSpec) -> cobre_core
         .map(|i| LoadModel {
             bus_id: EntityId(CHRONOLOGICAL_NOISE_BUS_ID),
             stage_id: i32::try_from(i).expect("stage index fits i32"),
-            mean_mw: 0.0,
+            mean_mw: spec.load_mw[i],
             std_mw: 0.0,
         })
         .collect();
@@ -1704,7 +1715,7 @@ fn build_chronological_noise_system(spec: &ChronologicalNoiseSpec) -> cobre_core
             .iter()
             .map(|&id| HydroStorage {
                 hydro_id: EntityId(id),
-                value_hm3: CHRONOLOGICAL_NOISE_INITIAL_STORAGE_HM3,
+                value_hm3: spec.initial_storage_hm3,
             })
             .collect(),
         filling_storage: vec![],
@@ -1799,6 +1810,28 @@ pub fn chronological_noise_study(spec: &ChronologicalNoiseSpec) -> (cobre_core::
     (build_chronological_noise_system(spec), config)
 }
 
+/// [`chronological_noise_study`]'s hydro models: the spec's constant productivity on every
+/// hydro and stage, which `build_setup_in_code` would leave at zero.
+#[must_use]
+pub fn chronological_noise_hydro_models(
+    spec: &ChronologicalNoiseSpec,
+    system: &cobre_core::System,
+) -> PrepareHydroModelsResult {
+    let mut hydro_models = PrepareHydroModelsResult::default_from_system(system);
+    let stage_models = vec![
+        ResolvedProductionModel::ConstantProductivity {
+            productivity: spec.hydro_productivity_mw_per_m3s,
+        };
+        CHRONOLOGICAL_NOISE_N_STAGES
+    ];
+    hydro_models.production = ProductionModelSet::new(
+        vec![stage_models; CHRONOLOGICAL_NOISE_HYDRO_IDS.len()],
+        system.hydros(),
+        CHRONOLOGICAL_NOISE_N_STAGES,
+    );
+    hydro_models
+}
+
 /// [`chronological_noise_study`] with a PAR(1) lag state whose raw inflow is negative at the root:
 /// stage 0 parallel, stage 1 chronological.
 #[must_use]
@@ -1812,6 +1845,21 @@ pub fn negative_draw_par1_spec(inflow_method: CfgInflowMethod) -> ChronologicalN
             lag_seed_m3s: NEGATIVE_DRAW_LAG_SEED_M3S,
         }),
         ..ChronologicalNoiseSpec::default()
+    }
+}
+
+/// [`negative_draw_par1_spec`] with water worth thermal generation: no load at stage 0, which
+/// stores its water in the 150 hm³ box; a 150 MW load at stage 1, above the 100 MW the two
+/// hydros can generate; and 100 hm³ initially, less than one stage of turbining at 100 m³/s,
+/// so stage 1 turbines all it holds.
+#[must_use]
+pub fn negative_draw_water_value_spec(inflow_method: CfgInflowMethod) -> ChronologicalNoiseSpec {
+    ChronologicalNoiseSpec {
+        max_storage_hm3: 150.0,
+        load_mw: [0.0, 150.0],
+        hydro_productivity_mw_per_m3s: 0.5,
+        initial_storage_hm3: 100.0,
+        ..negative_draw_par1_spec(inflow_method)
     }
 }
 
