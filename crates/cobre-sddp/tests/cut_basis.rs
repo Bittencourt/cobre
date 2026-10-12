@@ -95,7 +95,7 @@ mod boundary_cuts {
             &basis_col,
             &basis_row,
         );
-        let warm_start_counts: Vec<u32> = fcf.pools.iter().map(|p| p.warm_start_count).collect();
+        let warm_start_counts: Vec<u32> = fcf.pools.iter().map(|p| p.prefix_len() as u32).collect();
         let metadata = cobre_sddp::test_support::checkpoint_metadata(
             fcf.pools.len() as u32,
             setup.build_graph_manifest(),
@@ -198,11 +198,11 @@ mod boundary_cuts {
         let terminal_pool_id = setup_c.inputs.node_graph.terminal_pool(num_stages).unwrap();
         let terminal_pool = &setup_c.fcf.pools[terminal_pool_id];
         assert!(
-            terminal_pool.has_warm_start_cuts(),
+            terminal_pool.has_prefix_cuts(),
             "terminal pool must have boundary cuts"
         );
         assert!(
-            terminal_pool.populated() >= terminal_pool.warm_start_count as usize,
+            terminal_pool.populated() >= terminal_pool.prefix_len(),
             "populated_count must include boundary cuts"
         );
 
@@ -356,7 +356,7 @@ mod boundary_cuts {
             .iter()
             .position(|&stage| stage == StageIdx(0))
             .expect("root pool")];
-        let boundary_cuts = terminal_pool.warm_start_count as usize;
+        let boundary_cuts = terminal_pool.prefix_len();
         assert_eq!(
             terminal_pool.active_count(),
             boundary_cuts,
@@ -2010,7 +2010,7 @@ mod hybrid_reconstruction {
 
 mod warm_start {
     //! Warm-start training: a run resumed from saved cuts reuses them
-    //! (`warm_start_count > 0`) and yields a lower bound no worse than fresh training.
+    //! (`prefix_len() > 0`) and yields a lower bound no worse than fresh training.
 
     use std::path::Path;
 
@@ -2079,7 +2079,7 @@ mod warm_start {
             &basis_col,
             &basis_row,
         );
-        let warm_start_counts: Vec<u32> = fcf.pools.iter().map(|p| p.warm_start_count).collect();
+        let warm_start_counts: Vec<u32> = fcf.pools.iter().map(|p| p.prefix_len() as u32).collect();
         let metadata = cobre_sddp::test_support::checkpoint_metadata(
             fcf.pools.len() as u32,
             setup.build_graph_manifest(),
@@ -2317,8 +2317,8 @@ mod warm_start {
         .expect("warm-start FCF");
         setup_warm.replace_fcf(warm_fcf);
 
-        let warm_start_count = setup_warm.fcf.pools[0].warm_start_count;
-        assert!(warm_start_count > 0, "warm_start_count should be > 0");
+        let prefix_len = setup_warm.fcf.pools[0].prefix_len();
+        assert!(prefix_len > 0, "prefix_len should be > 0");
         assert_eq!(
             setup_warm.fcf.total_active_cuts(),
             fresh_active,
@@ -3409,7 +3409,7 @@ mod range_warm_start_determinism {
             &basis_col,
             &basis_row,
         );
-        let warm_start_counts: Vec<u32> = fcf.pools.iter().map(|p| p.warm_start_count).collect();
+        let warm_start_counts: Vec<u32> = fcf.pools.iter().map(|p| p.prefix_len() as u32).collect();
         let metadata = cobre_sddp::test_support::checkpoint_metadata(
             fcf.pools.len() as u32,
             setup.build_graph_manifest(),
