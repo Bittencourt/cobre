@@ -2226,7 +2226,7 @@ fn backward_solver_error_propagates() {
 
 // ── Parallel cut determinism ──────────────────────────────────────────────
 
-/// AC: When `run_backward_pass` runs with 1 workspace vs 4 workspaces given
+/// When `run_backward_pass` runs with 1 workspace vs 4 workspaces given
 /// the same input data, the FCF pools contain identical cuts (same intercept,
 /// coefficient vectors, and slot assignments for each trial point).
 #[test]
@@ -2603,7 +2603,7 @@ fn make_stochastic_context_with_load(
     .unwrap()
 }
 
-/// AC: Given a backward pass with 1 stochastic load bus and opening noise
+/// Given a backward pass with 1 stochastic load bus and opening noise
 /// that includes a load component eta, the load balance row RHS in the patch
 /// buffer is set to `max(0, mean + std * eta) * block_factor` before the solve.
 ///
@@ -2741,7 +2741,7 @@ fn backward_pass_load_patches_applied() {
     );
 }
 
-/// AC: Given a backward pass with 0 stochastic load buses, `patch_count`
+/// Given a backward pass with 0 stochastic load buses, `patch_count`
 /// equals `N` (z-inflow only, no load patches) and `load_rhs_buf` stays empty.
 ///
 /// N=1 → `patch_count = 1`.
@@ -2867,7 +2867,7 @@ fn backward_pass_no_load_buses_unchanged() {
     );
 }
 
-/// AC: Given a backward pass with stochastic load, when Benders cut
+/// Given a backward pass with stochastic load, when Benders cut
 /// coefficients are extracted, the cut coefficient array has length `n_state`
 /// unchanged — load adds no state variables.
 ///
@@ -5363,7 +5363,7 @@ fn dcs_params(start_iteration: u64) -> DcsParams {
     }
 }
 
-/// AC3 (exactness, real solver, both backends via the active solver): the
+/// Exactness (real solver, both backends via the active solver): the
 /// DCS-built cut equals the all-cuts cut (intercept + every coefficient
 /// within 1e-9). DCS seeds an initial set that omits the binding cut; the
 /// lazy loop must add it and reach the same dual.
@@ -5427,7 +5427,7 @@ fn backward_dcs_inactive_before_start_iteration() {
     assert_eq!(frozen_meta, early_meta);
 }
 
-/// AC1: the DCS path extracts the cut gradient from the final all-satisfied
+/// The DCS path extracts the cut gradient from the final all-satisfied
 /// LP AND maintains the binding-count metadata slot-correct under the
 /// resident `CutRowMap`. For this fixture the only cut that binds at the
 /// converged optimum (`x_hat` = 2, theta = 4) is the binding slot 1; slots 0
