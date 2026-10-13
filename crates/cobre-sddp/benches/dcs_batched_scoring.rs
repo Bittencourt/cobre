@@ -17,7 +17,6 @@
 
 use cobre_core::StageStateConfig;
 use cobre_sddp::cut::{CutPool, CutRowMap};
-use cobre_sddp::cut_selection::CutMetadata;
 use cobre_sddp::dcs::{DcsParams, DcsScoringScratch, score_violated_candidates};
 use cobre_sddp::indexer::{CutStateProjection, StateDim, StateSpace};
 use cobre_sddp::lead_time::AnticipatedResolution;
@@ -160,22 +159,14 @@ fn score_per_candidate_baseline(
 /// candidate) with `n_state` coefficients, all generated at iteration 1.
 fn make_candidate_pool(k: usize, n_state: usize, seed: u64) -> CutPool {
     let mut pool = CutPool::new(k.max(1), n_state, k.max(1) as u32, 0);
+    pool.set_iteration_base(1);
     let mut state = seed;
     let mut coeffs = vec![0.0_f64; n_state];
     for slot in 0..k {
         let intercept = draw_f64(&mut state);
         fill_f64(&mut coeffs, state.wrapping_add(0xABCD_0000 + slot as u64));
-        pool.add_cut(NodeId(0), 0, slot as u32, intercept, &coeffs);
+        pool.add_cut(NodeId(0), 1, slot as u32, intercept, &coeffs);
     }
-    let metadata: Vec<CutMetadata> = (0..k)
-        .map(|slot| {
-            let mut meta = pool.metadata(slot).clone();
-            meta.iteration_generated = 1;
-            meta
-        })
-        .collect();
-    let active: Vec<bool> = (0..k).map(|slot| pool.is_active(slot)).collect();
-    pool.replace_selection(&metadata, &active);
     pool
 }
 
