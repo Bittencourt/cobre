@@ -1715,6 +1715,7 @@ mod tests {
             rows_in_lp_sum: 720,
             rows_in_lp_count: 240,
             rows_in_lp_max: 24,
+            lazy_round_cap_hits: 0,
         };
 
         Python::attach(|py| {
@@ -1807,6 +1808,7 @@ mod tests {
                 rows_in_lp_sum: 720,
                 rows_in_lp_count: 240,
                 rows_in_lp_max: 24,
+                lazy_round_cap_hits: 0,
             })
             .expect("the receiver is alive");
         drop(event_tx);
