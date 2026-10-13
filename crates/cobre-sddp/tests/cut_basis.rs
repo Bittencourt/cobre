@@ -1844,7 +1844,7 @@ mod selection_in_a_training_run {
             seed_window: 5,
             candidate_recency: None,
             max_added_per_round: 10,
-            violation_tolerance: 1e-10,
+            violation_tolerance: None,
         }
     }
 
@@ -2271,7 +2271,7 @@ mod trial_state_store {
                 seed_window: 5,
                 candidate_recency: None,
                 max_added_per_round: 10,
-                violation_tolerance: 1e-10,
+                violation_tolerance: None,
             }),
         ];
         for selection in others {
