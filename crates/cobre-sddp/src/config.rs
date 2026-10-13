@@ -37,7 +37,7 @@ use std::sync::atomic::AtomicUsize;
 use std::sync::mpsc::Sender;
 
 use cobre_core::TrainingEvent;
-use cobre_io::config::CheckpointSchedule;
+use cobre_io::config::{CheckpointSchedule, RowSelectionConfig};
 
 use crate::cut_selection::CutSelectionStrategy;
 use crate::policy::orchestration::PeriodicCheckpoint;
@@ -161,7 +161,7 @@ impl Default for CutManagementConfig {
         Self {
             cut_selection: None,
             budget: None,
-            cut_activity_tolerance: 1e-6,
+            cut_activity_tolerance: RowSelectionConfig::default().row_activity_tolerance,
             risk_measures: vec![RiskMeasure::Expectation],
         }
     }
