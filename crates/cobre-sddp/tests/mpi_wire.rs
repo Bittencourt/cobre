@@ -3116,7 +3116,7 @@ mod selection_on_determinism {
 
     use std::collections::BTreeSet;
     use std::fmt::Debug;
-    use std::num::NonZeroU64;
+    use std::num::NonZeroU32;
     use std::path::Path;
     use std::sync::mpsc;
 
@@ -3149,11 +3149,21 @@ mod selection_on_determinism {
     const NON_UNIFORM_OPENINGS: u32 = 5;
     const TWO_HYDRO_CASE: &str = "../../examples/deterministic/d03-two-hydro-cascade";
     const TWO_HYDRO_PERMUTATION_SEEDS: [u64; 2] = [2, 8];
-    const WINDOW: Option<NonZeroU64> = NonZeroU64::new(4);
+    const WINDOW: Option<NonZeroU32> = NonZeroU32::new(4);
     const FAN_FORWARD_PASSES: u32 = 8;
     const FAN_ITERATIONS: u32 = 10;
     const fn level1(check_frequency: u32) -> SelectionMethod {
-        SelectionMethod::Level1 { check_frequency }
+        SelectionMethod::Level1 {
+            check_frequency,
+            lookback_iterations: None,
+        }
+    }
+
+    const fn windowed_level1(check_frequency: u32) -> SelectionMethod {
+        SelectionMethod::Level1 {
+            check_frequency,
+            lookback_iterations: WINDOW,
+        }
     }
 
     const FAN_SELECTION: SelectionMethod = level1(1);
@@ -3409,11 +3419,6 @@ mod selection_on_determinism {
             run.shape
         );
         fan_power(run)
-    }
-
-    fn windowed(mut setup: StudySetup) -> StudySetup {
-        setup.set_level1_lookback(WINDOW);
-        setup
     }
 
     fn deactivates_and_reassigns(power: &Level1Power) -> bool {
@@ -3784,13 +3789,13 @@ mod selection_on_determinism {
     fn level1_window_thread_shapes_agree_on_the_uniform_fixture() {
         assert_thread_shapes_agree(
             || {
-                windowed(fresh_setup_with(Path::new(UNIFORM_CASE), |config| {
+                fresh_setup_with(Path::new(UNIFORM_CASE), |config| {
                     config.training.selection =
                         Some(TrainingSelection::Sampled { forward_passes: 4 });
                     config.training.stopping_rules =
                         Some(vec![StoppingRuleConfig::IterationLimit { limit: 12 }]);
-                    config.training.cut_selection.selection = Some(level1(2));
-                }))
+                    config.training.cut_selection.selection = Some(windowed_level1(2));
+                })
             },
             level1_power,
             |power| deactivates_reassigns_and_drops(power) && power.selection.reactivations > 0,
@@ -3808,7 +3813,7 @@ mod selection_on_determinism {
     )]
     fn level1_window_thread_shapes_agree_on_the_non_uniform_projection_fixture() {
         let build = || {
-            windowed(fresh_setup_with_openings(
+            fresh_setup_with_openings(
                 Path::new(NON_UNIFORM_CASE),
                 NON_UNIFORM_OPENINGS,
                 |config| {
@@ -3816,9 +3821,9 @@ mod selection_on_determinism {
                         Some(TrainingSelection::Sampled { forward_passes: 4 });
                     config.training.stopping_rules =
                         Some(vec![StoppingRuleConfig::IterationLimit { limit: 12 }]);
-                    config.training.cut_selection.selection = Some(level1(2));
+                    config.training.cut_selection.selection = Some(windowed_level1(2));
                 },
-            ))
+            )
         };
         assert_non_uniform_projection(&build());
 
