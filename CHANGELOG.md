@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- HiGHS forward and simulation solves are cold by default: `use_warm_start`
+  now defaults to `false` for those phases, so their LPs ignore the stored
+  basis and run presolve. Backward solves still warm-start. Set
+  `"use_warm_start": true` in `training.solver.forward` or `simulation.solver`
+  to restore warm-starting for that phase. A cold solve can stop at a
+  different but equally optimal vertex, so simulated duals and the final
+  lower bound may differ slightly from 0.18.0 on the same inputs.
+- HiGHS retry escalation keeps the phase's `use_warm_start` at every retry
+  level; levels 5-11 previously reset it to the solver default.
+
 ### Fixed
 
 - Under MPI, training multiplied its LP-solve count by the number of ranks, and
