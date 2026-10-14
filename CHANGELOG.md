@@ -20,6 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   lower bound may differ slightly from 0.18.0 on the same inputs.
 - HiGHS retry escalation keeps the phase's `use_warm_start` at every retry
   level; levels 5-11 previously reset it to the solver default.
+- `cobre run` writes its banner, progress lines and summaries to stdout;
+  warnings and errors stay on stderr, and progress bars on an interactive
+  terminal still draw on stderr. Scripts and job logs that read the run report
+  from stderr must read stdout instead. `--color` now applies to both streams.
 
 ### Fixed
 
