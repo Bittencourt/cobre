@@ -1583,7 +1583,7 @@ mod warm_start {
     };
     use cobre_solver::ActiveSolver;
 
-    use super::common::StubComm;
+    use super::common::{StubComm, enable_forward_warm_start};
 
     fn d01_case_dir() -> std::path::PathBuf {
         Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -1912,8 +1912,9 @@ mod warm_start {
         const OTHER_STAGE: i32 = 0;
 
         let case_dir = d01_case_dir();
-        let config =
+        let mut config =
             cobre_io::parse_config(&case_dir.join("config.json")).expect("config must parse");
+        enable_forward_warm_start(&mut config);
 
         let mut setup_fresh = build_setup(&case_dir, &config);
         let comm = StubComm;
