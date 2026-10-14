@@ -92,6 +92,7 @@ use cobre_core::{
     scenario::{SamplingScheme, ScenarioSource},
 };
 use cobre_io::StageIdResolver;
+use cobre_io::StageStatesReadResult;
 use cobre_io::build_hydro_reference_volumes_resolved;
 use cobre_stochastic::par::precompute::PrecomputedPar;
 use cobre_stochastic::{
@@ -260,6 +261,12 @@ pub struct StudySetup {
     /// [`BasisStore`](crate::workspace::BasisStore) so iteration 1's LPs warm-start.
     /// `None` for a fresh start, leaving fresh-mode behavior untouched.
     pub(crate) warm_start_basis_cache: Option<Vec<Option<CapturedBasis>>>,
+
+    /// Stored trial states of the loaded checkpoint, one entry per pool that
+    /// holds some, slots already placed in the loaded pool. Set by
+    /// [`StudySetup::set_loaded_trial_states`] and handed to the training
+    /// session once by [`StudySetup::train`]; empty for a fresh start.
+    pub(crate) loaded_trial_states: Vec<StageStatesReadResult>,
 
     /// Boundary-derived state requirements this study was built against, resolved
     /// once and carried identically on every rank. The boundary-cut load path
@@ -505,6 +512,7 @@ impl StudySetup {
             energy_conversion,
             hydro_min_storage_hm3: system.hydros().iter().map(|h| h.min_storage_hm3).collect(),
             warm_start_basis_cache: None,
+            loaded_trial_states: Vec::new(),
             boundary_requirements: config.boundary,
         })
     }

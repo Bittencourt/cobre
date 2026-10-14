@@ -6,7 +6,7 @@ use cobre_core::AnticipatedCommitmentHistory;
 use cobre_core::System;
 #[cfg(any(test, feature = "test-support"))]
 use cobre_core::commissioning::commissioning_active;
-use cobre_io::EntitySlot;
+use cobre_io::{EntitySlot, StageStatesReadResult};
 
 #[cfg(any(test, feature = "test-support"))]
 use cobre_io::config::BackwardScheduler;
@@ -56,6 +56,12 @@ impl StudySetup {
     /// Leave unset (the default `None`) for a fresh start.
     pub fn set_warm_start_basis_cache(&mut self, cache: Vec<Option<CapturedBasis>>) {
         self.warm_start_basis_cache = Some(cache);
+    }
+
+    /// Hand training the stored trial states of a loaded checkpoint, their slots
+    /// already placed in the loaded pools.
+    pub(crate) fn set_loaded_trial_states(&mut self, states: Vec<StageStatesReadResult>) {
+        self.loaded_trial_states = states;
     }
 
     /// Enable state archiving for export.
