@@ -6523,7 +6523,6 @@ mod chronological_telescoping {
             max_iterations: setup.loop_params.max_iterations,
             forward_passes: setup.loop_params.forward_passes,
             seed: setup.loop_params.seed,
-            export_states: config.exports.states,
         };
         write_checkpoint(policy_dir.path(), &setup, &system, &result, &params)
             .expect("write_checkpoint must succeed");
@@ -7018,7 +7017,6 @@ mod season_descriptor_checkpoint_round_trip {
             max_iterations: setup.loop_params.max_iterations,
             forward_passes: setup.loop_params.forward_passes,
             seed: setup.loop_params.seed,
-            export_states: config.exports.states,
         };
         write_checkpoint(policy_dir.path(), &setup, &system, &result, &params)
             .expect("write_checkpoint must succeed");
@@ -7394,7 +7392,6 @@ mod boundary_season_gate_round_trip {
             max_iterations: setup.loop_params.max_iterations,
             forward_passes: setup.loop_params.forward_passes,
             seed: setup.loop_params.seed,
-            export_states: config.exports.states,
         };
         write_checkpoint(policy_dir.path(), &setup, &system, &result, &params)
             .expect("write_checkpoint must succeed");
@@ -7766,7 +7763,6 @@ mod transit_arrival_interval_checkpoint_round_trip {
             max_iterations: setup.loop_params.max_iterations,
             forward_passes: setup.loop_params.forward_passes,
             seed: setup.loop_params.seed,
-            export_states: config.exports.states,
         };
         write_checkpoint(policy_dir.path(), &setup, &system, &result, &params)
             .expect("write_checkpoint must succeed");

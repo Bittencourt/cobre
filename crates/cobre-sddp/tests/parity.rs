@@ -784,7 +784,8 @@ mod determinism {
         },
     };
     use cobre_sddp::{
-        Phase, SolverProfiles, StoppingMode, StoppingRule, StoppingRuleSet, TrainingConfig,
+        LoadedPolicy, Phase, SolverProfiles, StoppingMode, StoppingRule, StoppingRuleSet,
+        TrainingConfig,
         config::{CutManagementConfig, EventConfig, LoopConfig},
         context::TrainingContext,
         cut::FutureCostFunction,
@@ -1327,8 +1328,7 @@ mod determinism {
                     },
                     &comm,
                     || Ok(MockSolver3H::new(100.0)),
-                    None,
-                    Vec::new(),
+                    LoadedPolicy::default(),
                     SolverProfiles::default(),
                 )
             })

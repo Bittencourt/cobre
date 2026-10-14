@@ -72,7 +72,6 @@ fn checkpoint_after(iterations: u32) -> (TempDir, Vec<f64>) {
             max_iterations: setup.loop_params.max_iterations,
             forward_passes: setup.loop_params.forward_passes,
             seed: setup.loop_params.seed,
-            export_states: false,
         },
     )
     .expect("write_checkpoint must succeed");
@@ -189,7 +188,6 @@ fn checkpoint_records_the_lower_bound_of_every_completed_iteration() {
             max_iterations: setup.loop_params.max_iterations,
             forward_passes: setup.loop_params.forward_passes,
             seed: setup.loop_params.seed,
-            export_states: false,
         },
     )
     .expect("write_checkpoint must succeed");
