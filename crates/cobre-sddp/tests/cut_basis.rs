@@ -45,6 +45,7 @@ mod boundary_cuts {
     use cobre_io::STAGE_CUTS_PRICED_STATE_DATE_SENTINEL;
     use cobre_io::config::StoppingRuleConfig;
     use cobre_io::output::policy::{read_policy_checkpoint, write_policy_checkpoint};
+    use cobre_io::test_support::producer_block_defaults;
     use cobre_sddp::setup::StageIdx;
     use cobre_sddp::{StudySetup, hydro_models::prepare_hydro_models, setup::prepare_stochastic};
     use cobre_solver::ActiveSolver;
@@ -123,11 +124,8 @@ mod boundary_cuts {
                 warm_start_cuts: warm_start_counts.iter().copied().max().unwrap_or(0),
                 warm_start_counts,
                 rng_seed: seed,
-                total_visited_states: 0,
-                training_block_mode: "parallel".to_string(),
-                training_block_mode_per_stage: vec![],
                 cost_scale_factor: None,
-                lower_bound_history: Vec::new(),
+                ..producer_block_defaults()
             },
         );
         write_policy_checkpoint(policy_dir, &stage_cuts, &stage_bases, &metadata, &[])
@@ -2880,6 +2878,7 @@ mod warm_start {
     use cobre_core::scenario::ScenarioSource;
     use cobre_io::config::StoppingRuleConfig;
     use cobre_io::output::policy::{read_policy_checkpoint, write_policy_checkpoint};
+    use cobre_io::test_support::producer_block_defaults;
     use cobre_sddp::{
         FutureCostFunction, SolverStatsDelta, StoredBasisMisfit, StudySetup,
         build_basis_cache_from_checkpoint, hydro_models::prepare_hydro_models,
@@ -2955,11 +2954,8 @@ mod warm_start {
                 warm_start_cuts: warm_start_counts.iter().copied().max().unwrap_or(0),
                 warm_start_counts,
                 rng_seed: seed,
-                total_visited_states: 0,
-                training_block_mode: "parallel".to_string(),
-                training_block_mode_per_stage: vec![],
                 cost_scale_factor: None,
-                lower_bound_history: Vec::new(),
+                ..producer_block_defaults()
             },
         );
         write_policy_checkpoint(policy_dir, &stage_cuts, &stage_bases, &metadata, &[])
@@ -3822,6 +3818,7 @@ mod range_warm_start_determinism {
         TrainingSolverConfig,
     };
     use cobre_io::output::policy::{read_policy_checkpoint, write_policy_checkpoint};
+    use cobre_io::test_support::producer_block_defaults;
     use cobre_sddp::basis_reconstruct::{
         ReconstructionTarget, enforce_basic_count_invariant, reconstruct_basis,
     };
@@ -4285,11 +4282,8 @@ mod range_warm_start_determinism {
                 warm_start_cuts: warm_start_counts.iter().copied().max().unwrap_or(0),
                 warm_start_counts,
                 rng_seed: seed,
-                total_visited_states: 0,
-                training_block_mode: "parallel".to_string(),
-                training_block_mode_per_stage: vec![],
                 cost_scale_factor: None,
-                lower_bound_history: Vec::new(),
+                ..producer_block_defaults()
             },
         );
         write_policy_checkpoint(policy_dir, &stage_cuts, &stage_bases, &metadata, &[])

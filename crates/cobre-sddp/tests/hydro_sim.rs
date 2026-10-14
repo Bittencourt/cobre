@@ -27,6 +27,7 @@ mod simulation_only {
 
     use cobre_core::scenario::ScenarioSource;
     use cobre_io::output::policy::{read_policy_checkpoint, write_policy_checkpoint};
+    use cobre_io::test_support::producer_block_defaults;
     use cobre_sddp::{
         FutureCostFunction, StudySetup, build_basis_cache_from_checkpoint,
         hydro_models::prepare_hydro_models,
@@ -144,11 +145,8 @@ mod simulation_only {
                 warm_start_cuts: warm_start_counts.iter().copied().max().unwrap_or(0),
                 warm_start_counts,
                 rng_seed: 42,
-                total_visited_states: 0,
-                training_block_mode: "parallel".to_string(),
-                training_block_mode_per_stage: vec![],
                 cost_scale_factor: None,
-                lower_bound_history: Vec::new(),
+                ..producer_block_defaults()
             },
         );
 
@@ -1154,6 +1152,7 @@ mod decomp_integration {
 
     use cobre_core::temporal::SeasonCycleType;
     use cobre_io::output::policy::write_policy_checkpoint;
+    use cobre_io::test_support::producer_block_defaults;
     use cobre_sddp::{StudySetup, hydro_models::prepare_hydro_models, setup::prepare_stochastic};
     use cobre_solver::ActiveSolver;
 
@@ -1240,11 +1239,8 @@ mod decomp_integration {
                 warm_start_cuts: warm_start_counts.iter().copied().max().unwrap_or(0),
                 warm_start_counts,
                 rng_seed: seed,
-                total_visited_states: 0,
-                training_block_mode: "parallel".to_string(),
-                training_block_mode_per_stage: vec![],
                 cost_scale_factor: None,
-                lower_bound_history: Vec::new(),
+                ..producer_block_defaults()
             },
         );
         write_policy_checkpoint(policy_dir, &stage_cuts, &stage_bases, &metadata, &[])

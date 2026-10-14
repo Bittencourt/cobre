@@ -20,6 +20,7 @@
 use std::path::Path;
 
 use chrono::NaiveDate;
+use cobre_io::test_support::{piece_defaults, stage_cuts_payload_defaults};
 use cobre_io::{
     GraphManifest, PolicyCutRecord, STAGE_CUTS_NODE_ID_SENTINEL, StageCutsPayload,
     encode_slot_date, write_policy_checkpoint,
@@ -61,10 +62,10 @@ fn write_synthetic_checkpoint(
             cut_id: i as u64,
             slot_index: i as u32,
             iteration: 0,
-            forward_pass_index: 0,
             intercept,
             coefficients: &coefficients,
             is_active: true,
+            ..piece_defaults()
         })
         .collect();
     let active_cut_indices: Vec<u32> = (0..intercepts.len() as u32).collect();
@@ -92,7 +93,6 @@ fn write_synthetic_checkpoint(
         stage_id: pool_id,
         state_dimension,
         capacity: intercepts.len() as u32,
-        warm_start_count: 0,
         cuts: &cuts,
         active_cut_indices: &active_cut_indices,
         populated_count: intercepts.len() as u32,
@@ -101,6 +101,7 @@ fn write_synthetic_checkpoint(
         node_id,
         graph_stage_id,
         priced_state_date: encode_slot_date(fixture_priced_date(pool_id)),
+        ..stage_cuts_payload_defaults()
     };
     let metadata = cobre_sddp::test_support::checkpoint_metadata(
         1,
