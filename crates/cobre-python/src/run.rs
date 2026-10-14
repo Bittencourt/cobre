@@ -92,6 +92,7 @@ use cobre_io::write_training_results;
 use cobre_sddp::HydroFitTimings;
 use cobre_sddp::SddpError;
 use cobre_sddp::SimulationWeighting;
+use cobre_sddp::StatsFoldMode;
 use cobre_sddp::TrainingResult;
 use cobre_sddp::aggregate_simulation;
 use cobre_sddp::aggregate_solver_stats_log;
