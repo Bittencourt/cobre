@@ -1539,8 +1539,7 @@ mod tests {
     use cobre_sddp::config::ShutdownSource;
     use cobre_sddp::setup::prepare_stochastic;
     use cobre_sddp::{
-        SddpError, SolverStatsDelta, SolverStatsLogEntry, StatsFoldMode,
-        aggregate_solver_stats_log,
+        SddpError, SolverStatsDelta, SolverStatsLogEntry, StatsFoldMode, aggregate_solver_stats_log,
     };
 
     use cobre_core::TrainingEvent;
