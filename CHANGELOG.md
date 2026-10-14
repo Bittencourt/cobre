@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `cobre run` writes its banner, progress lines and summaries to stdout;
+  warnings and errors stay on stderr, and progress bars on an interactive
+  terminal still draw on stderr. Scripts and job logs that read the run report
+  from stderr must read stdout instead. `--color` now applies to both streams.
+
 ## [0.18.0] - 2026-10-07
 
 ### Added
