@@ -7,9 +7,7 @@ use std::sync::mpsc::{Sender, SyncSender};
 use cobre_comm::Communicator;
 use cobre_core::TrainingEvent;
 use cobre_io::TrainingOutput;
-use cobre_solver::ActiveProfile;
-use cobre_solver::StageTemplate;
-use cobre_solver::{SolverError, SolverInterface};
+use cobre_solver::{ActiveProfile, SolverError, SolverInterface, StageTemplate};
 
 use crate::{
     config::{CutManagementConfig, EventConfig, LoopConfig, TrainingConfig},

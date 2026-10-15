@@ -86,7 +86,9 @@ mod deck_smoke {
 
     use cobre_io::{StateFamily, encode_slot_date};
     use cobre_sddp::indexer::StateDim;
-    use cobre_sddp::policy_export::{build_stage_cut_records, build_stage_cuts_payloads};
+    use cobre_sddp::policy_export::{
+        BindingCounters, build_stage_cut_records, build_stage_cuts_payloads,
+    };
 
     use crate::common::fresh_setup_with;
 
@@ -139,7 +141,8 @@ mod deck_smoke {
             .filter(|s| s.id >= 0)
             .map(|s| s.end_date)
             .collect();
-        let stage_records = build_stage_cut_records(&setup.fcf, false).expect("export");
+        let stage_records =
+            build_stage_cut_records(&setup.fcf, BindingCounters::Omitted).expect("export");
         let stage_manifests: Vec<Vec<cobre_io::EntitySlot>> =
             vec![Vec::new(); setup.fcf.pools.len()];
         let stage_cuts = build_stage_cuts_payloads(

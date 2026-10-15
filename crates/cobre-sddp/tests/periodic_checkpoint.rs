@@ -25,6 +25,7 @@ use cobre_sddp::cut::SlotOrigin;
 use cobre_sddp::policy::full_fcf_load::{FullFcfLoadKind, check_full_fcf_load};
 use cobre_sddp::policy::orchestration::{CheckpointParams, partial_policy_dir, write_checkpoint};
 use cobre_sddp::setup::NodePos;
+use cobre_sddp::test_support::snapshot_files;
 use cobre_sddp::{CapturedBasis, DEFAULT_COST_SCALE_FACTOR, SddpError, StudySetup, TrainingResult};
 use cobre_solver::{ActiveSolver, BasisStatus};
 use tempfile::TempDir;
@@ -321,25 +322,6 @@ fn failed_periodic_write_ends_training_with_the_failing_iteration() {
     assert_eq!(outcome.result.iterations, 2);
 }
 
-fn policy_bytes(dir: &Path) -> BTreeMap<PathBuf, Vec<u8>> {
-    fn visit(root: &Path, dir: &Path, files: &mut BTreeMap<PathBuf, Vec<u8>>) {
-        for entry in std::fs::read_dir(dir).expect("read_dir") {
-            let path = entry.expect("entry").path();
-            if path.is_dir() {
-                visit(root, &path, files);
-            } else {
-                files.insert(
-                    path.strip_prefix(root).unwrap().to_path_buf(),
-                    std::fs::read(&path).expect("read"),
-                );
-            }
-        }
-    }
-    let mut files = BTreeMap::new();
-    visit(dir, dir, &mut files);
-    files
-}
-
 #[test]
 fn a_failed_periodic_write_leaves_the_last_whole_checkpoint_and_a_partial_beside_it() {
     let out = tempfile::tempdir().expect("tempdir");
@@ -356,7 +338,7 @@ fn a_failed_periodic_write_leaves_the_last_whole_checkpoint_and_a_partial_beside
             .expect("write_checkpoint must succeed"),
         policy_dir
     );
-    let whole = policy_bytes(&policy_dir);
+    let whole = snapshot_files(&policy_dir);
     std::fs::write(
         policy_dir.join("foreign"),
         b"no checkpoint writer leaves this",
@@ -393,7 +375,7 @@ fn a_failed_periodic_write_leaves_the_last_whole_checkpoint_and_a_partial_beside
     assert_eq!(Some(partial.clone()), partial_policy_dir(&policy_dir));
     let partial_checkpoint = read_policy_checkpoint(&partial).expect("the partial policy reads");
     assert!(!partial_checkpoint.metadata.producer.basis_store_complete);
-    let mut kept = policy_bytes(&policy_dir);
+    let mut kept = snapshot_files(&policy_dir);
     assert!(kept.remove(Path::new("foreign")).is_some());
     assert_eq!(
         kept, whole,
