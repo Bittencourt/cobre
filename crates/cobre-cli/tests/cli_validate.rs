@@ -1641,7 +1641,7 @@ fn validate_rejects_a_dynamic_simulation_over_deactivated_cuts() {
     });
     let (output, value) = validate_json(dir.path());
     assert_eq!(output.status.code(), Some(1), "{value}");
-    assert_eq!(value["error"]["phase"], "WarmStartIncompatible");
+    assert_eq!(value["error"]["phase"], "SimulationPolicyIncompatible");
     let message = value["error"]["message"].as_str().unwrap();
     for fragment in [
         "training.cut_selection.selection.method = dynamic cannot simulate \
@@ -1771,9 +1771,9 @@ fn make_training_lp_infeasible(case: &Path) {
     });
 }
 
-/// A simulation-only load shares the warm-start kind: there is no third kind.
+/// A simulation-only load has its own kind, apart from a warm start.
 #[test]
-fn validate_refuses_a_simulation_only_policy_under_the_warm_start_kind() {
+fn validate_refuses_a_simulation_only_policy_under_the_simulation_kind() {
     let dir = TempDir::new().unwrap();
     write_boundary_case(dir.path(), 0);
     run_case(dir.path());
@@ -1782,7 +1782,7 @@ fn validate_refuses_a_simulation_only_policy_under_the_warm_start_kind() {
 
     let (output, value) = validate_json(dir.path());
     assert_eq!(output.status.code(), Some(1));
-    assert_eq!(value["error"]["phase"], "WarmStartIncompatible");
+    assert_eq!(value["error"]["phase"], "SimulationPolicyIncompatible");
     assert!(
         value["error"]["message"]
             .as_str()
