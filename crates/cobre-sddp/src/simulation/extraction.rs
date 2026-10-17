@@ -1456,15 +1456,14 @@ fn compute_hydro_violation_costs(
             )
         };
 
-    let (turbined_plant, generation_plant) =
-        if equipment.turbine_below_plant_slack.is_empty() {
-            (0.0, 0.0)
-        } else {
-            (
-                range_sum(equipment.turbine_below_plant_slack.clone()) * cost_scale_factor,
-                range_sum(equipment.generation_below_plant_slack.clone()) * cost_scale_factor,
-            )
-        };
+    let (turbined_plant, generation_plant) = if equipment.turbine_below_plant_slack.is_empty() {
+        (0.0, 0.0)
+    } else {
+        (
+            range_sum(equipment.turbine_below_plant_slack.clone()) * cost_scale_factor,
+            range_sum(equipment.generation_below_plant_slack.clone()) * cost_scale_factor,
+        )
+    };
 
     HydroViolationCosts {
         evaporation,

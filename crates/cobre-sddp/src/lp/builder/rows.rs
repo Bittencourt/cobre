@@ -437,7 +437,7 @@ fn fill_z_inflow_rows(
 /// CELL per-block: each cell's RHS is the PLAIN SUM of its own member groups'
 /// resolved minimum (`cell_min_turbined`/`cell_min_generation`), never the
 /// plant's declared `min_turbined_m3s`/`min_generation_mw` — see the
-/// min-floor contract 
+/// min-floor contract
 ///
 /// The two plant-level families (min-turbine-plant, min-generation-plant) are
 /// per-hydro per-block ADDITIVE floors on the plant's total: RHS is the
