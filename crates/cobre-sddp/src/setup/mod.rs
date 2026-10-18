@@ -3259,8 +3259,8 @@ mod transit_seed_round_trip_tests {
 mod scalar_parameter_construction_tests {
     use cobre_core::scenario::SamplingScheme;
     use cobre_core::{
-        AffineBound, ComputedParameter, ConstraintExpression, EntityId, GenericConstraint,
-        ParameterKind, ScalarParameter, SystemBuilder,
+        ComputedParameter, ConstraintExpression, EntityId, GenericConstraint, ParameterKind,
+        ScalarExpr, ScalarParameter, SystemBuilder,
     };
     use cobre_io::Config;
     use cobre_stochastic::{ClassSchemes, OpeningTreeInputs, build_stochastic_context};
@@ -3378,7 +3378,7 @@ mod scalar_parameter_construction_tests {
             description: None,
             expression: ConstraintExpression { terms: vec![] },
             slack: None,
-            bound_lower: Some(AffineBound::single(EntityId(999))),
+            bound_lower: Some(ScalarExpr::param(EntityId(999))),
             bound_upper: None,
         };
         let system = SystemBuilder::new()
@@ -3412,7 +3412,7 @@ mod scalar_parameter_construction_tests {
             description: None,
             expression: ConstraintExpression { terms: vec![] },
             slack: None,
-            bound_lower: Some(AffineBound::single(EntityId(999))),
+            bound_lower: Some(ScalarExpr::param(EntityId(999))),
             bound_upper: None,
         };
         let system = SystemBuilder::new()
@@ -3465,7 +3465,7 @@ mod scalar_parameter_construction_tests {
             description: None,
             expression: ConstraintExpression { terms: vec![] },
             slack: None,
-            bound_lower: Some(AffineBound::single(EntityId(7))),
+            bound_lower: Some(ScalarExpr::param(EntityId(7))),
             bound_upper: None,
         };
         let system = SystemBuilder::new()
