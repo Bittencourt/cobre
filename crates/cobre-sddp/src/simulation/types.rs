@@ -71,9 +71,11 @@ pub struct SimulationCostResult {
     pub outflow_violation_below_cost: f64,
     /// Cost of maximum outflow violations: sum of `outflow_above_slack` * penalty.
     pub outflow_violation_above_cost: f64,
-    /// Cost of minimum turbining violations: sum of `turbine_below_slack` * penalty.
+    /// Cost of minimum turbining violations: the cell and plant residual
+    /// turbine-below slacks times their penalty.
     pub turbined_violation_cost: f64,
-    /// Cost of minimum generation violations: sum of `generation_below_slack` * penalty.
+    /// Cost of minimum generation violations: the cell and plant residual
+    /// generation-below slacks times their penalty.
     pub generation_violation_cost: f64,
     /// Cost of evaporation constraint violations.
     pub evaporation_violation_cost: f64,
@@ -120,7 +122,7 @@ pub struct SimulationHydroResult {
     /// Diverted outflow to downstream diversion in m³/s, or [`None`] if no
     /// diversion exists.
     pub diverted_outflow_m3s: Option<f64>,
-    /// Incremental (local) natural inflow in m³/s.
+    /// Incremental (local) inflow in m³/s as the inflow model gives it; may be negative.
     pub incremental_inflow_m3s: f64,
     /// Incremental (local) natural inflow in m³/s; the same value as
     /// [`Self::incremental_inflow_m3s`].
@@ -131,8 +133,8 @@ pub struct SimulationHydroResult {
     pub storage_final_hm3: f64,
     /// Active power generation in MW.
     pub generation_mw: f64,
-    /// Equivalent productivity `ρ_eq` \[MW/(m³/s)\]. For `ConstantProductivity` /
-    /// `LinearizedHead` models this is the stored input scalar; for FPHA models
+    /// Equivalent productivity `ρ_eq` \[MW/(m³/s)\]. For `ConstantProductivity`
+    /// models this is the stored input scalar; for FPHA models
     /// it is derived from VHA geometry, `ρ_esp`, `V_ref`, and `Q_ref` by
     /// `EnergyConversionSet`. Always populated.
     pub equivalent_productivity_mw_per_m3s: f64,
@@ -140,7 +142,7 @@ pub struct SimulationHydroResult {
     /// the downstream cascade. Always populated.
     pub accumulated_productivity_mw_per_m3s: f64,
     /// Incremental inflow expressed in energy units
-    /// (`ρ_acum · incremental_inflow_m3s`) \[MW\].
+    /// (`ρ_acum · incremental_inflow_m3s`) \[MW\]; may be negative.
     pub incremental_inflow_energy_mw: f64,
     /// Stored energy at the start of the block
     /// (`(storage_initial_hm3 − V_min) · ρ_acum · 10^6 / 3600`) \[`MWh`\].
@@ -175,7 +177,8 @@ pub struct SimulationHydroResult {
     pub evaporation_violation_pos_m3s: f64,
     /// Under-evaporation violation in m³/s (evaporated less than target).
     pub evaporation_violation_neg_m3s: f64,
-    /// Inflow non-negativity constraint slack in m³/s.
+    /// Water added to the incremental inflow in the water balance, in m³/s: the
+    /// truncation correction or the penalty slack; `0` when the method has neither.
     pub inflow_nonnegativity_slack_m3s: f64,
     /// Over-withdrawal violation in m³/s (withdrew more than target).
     /// Zero when no withdrawal is modeled.
@@ -378,7 +381,8 @@ pub struct SimulationInflowLagResult {
     pub hydro_id: i32,
     /// Lag index within the AR model (0 = most recent past period).
     pub lag_index: u32,
-    /// Observed inflow at this lag in m³/s.
+    /// Incremental inflow at this lag as the stage receives it, in m³/s: history at
+    /// the start of the horizon, simulated values afterwards; may be negative.
     pub inflow_m3s: f64,
 }
 
